@@ -1,0 +1,269 @@
+/* chess-board.css - CHESS/64: the board, the 64 squares, the piece glyphs,
+   the coordinate labels and the promotion dialog.
+
+   index.html ships #board empty. board-view.js injects 64
+   button.chess-square[data-square="e4"] children, each with an aria-label, a
+   data-piece, a .light or .dark class, and the state classes .is-selected,
+   .is-target, .is-capture, .is-last and .is-check. Nothing here assumes an
+   order, so flipping the board is a re-render, not a stylesheet change.
+
+   Two rules keep the board square and inside the viewport, and they are the
+   reason the sibling META/81 board stopped overflowing: aspect-ratio 1 with
+   8 x minmax(0, 1fr) tracks, and min-width: 0 / overflow: hidden on every
+   square so a wide glyph cannot push a column open. Change them deliberately.
+
+   Coordinate labels are injected too, as
+   <span class="chess-coord chess-coord-file">a</span> (bottom rank) and
+   <span class="chess-coord chess-coord-rank">1</span> (first file), so they
+   follow the orientation without any markup in the page. */
+
+.chess-board-frame {
+  position: relative;
+  min-width: 0;
+}
+
+.chess-board {
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  grid-template-rows: repeat(8, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+}
+
+.chess-square {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: #f0ebe3;
+  font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols 2", "DejaVu Sans", Georgia, serif;
+  font-size: clamp(1.5rem, 4.4vw, 2.9rem);
+  line-height: 1;
+}
+
+.chess-square.light {
+  background: #f0ebe3;
+}
+
+.chess-square.dark {
+  background: #b3a089;
+}
+
+.chess-square:enabled {
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------------- pieces */
+
+/* Both colours use the solid glyph set (U+265A..U+265F). The outline set
+   renders at a different weight, and sometimes a different width, in the
+   fonts actually installed on Windows, macOS and Android, so White is made
+   White by fill and stroke instead. The flag below is set by whichever
+   convention board-view.js uses to mark a white piece; the appearance is
+   applied once, further down, so the stroke has a single fallback path. */
+.chess-square:is(
+    .is-white,
+    [data-color="w"],
+    [data-color="white"],
+    [data-piece^="w"],
+    [data-piece="P"],
+    [data-piece="N"],
+    [data-piece="B"],
+    [data-piece="R"],
+    [data-piece="Q"],
+    [data-piece="K"]
+  ),
+.chess-promotion.is-white .chess-promo-row button {
+  --piece-fill: #fff;
+  --piece-stroke: 0.035em;
+  --piece-halo: 0 1px 0 var(--ink), 1px 0 0 var(--ink), 0 -1px 0 var(--ink), -1px 0 0 var(--ink);
+}
+
+.chess-square,
+.chess-promo-row button {
+  color: var(--piece-fill, var(--ink));
+  text-shadow: var(--piece-halo, none);
+}
+
+/* Every current engine takes this branch; the text-shadow above is the
+   fallback for one that does not paint a text stroke. */
+@supports (-webkit-text-stroke: 1px #000000) {
+  .chess-square,
+  .chess-promo-row button {
+    text-shadow: none;
+    -webkit-text-stroke: var(--piece-stroke, 0) var(--ink);
+  }
+}
+
+/* -------------------------------------------------------------- states */
+
+.chess-square.is-last {
+  box-shadow: inset 0 0 0 0.13em rgba(180, 83, 9, 0.55);
+}
+
+.chess-square.is-check {
+  background: radial-gradient(circle at 50% 50%, rgba(190, 18, 60, 0.62), rgba(190, 18, 60, 0.12) 72%), #d9c3b3;
+}
+
+.chess-square.is-selected {
+  box-shadow: inset 0 0 0 0.13em var(--teal-dark);
+  background-color: #d8e9e5;
+}
+
+.chess-square.is-target::after,
+.chess-square.is-capture::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.chess-square.is-target::after {
+  width: 26%;
+  height: 26%;
+  border-radius: 50%;
+  background: rgba(17, 118, 110, 0.55);
+}
+
+.chess-square.is-capture::after {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 0 0 0.16em rgba(190, 18, 60, 0.7);
+}
+
+.chess-square:enabled:hover {
+  filter: brightness(1.04) saturate(1.06);
+}
+
+.chess-square:focus-visible {
+  z-index: 4;
+  outline: 3px solid var(--teal-dark);
+  outline-offset: -3px;
+}
+
+/* -------------------------------------------------- coordinate labels */
+
+.chess-coord {
+  position: absolute;
+  z-index: 2;
+  color: rgba(41, 37, 36, 0.62);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  line-height: 1;
+  text-shadow: none;
+  -webkit-text-stroke-width: 0;
+  pointer-events: none;
+}
+
+.chess-square.dark .chess-coord {
+  color: rgba(250, 250, 249, 0.82);
+}
+
+.chess-coord-file {
+  right: 3px;
+  bottom: 2px;
+}
+
+.chess-coord-rank {
+  top: 2px;
+  left: 3px;
+}
+
+/* ------------------------------------------------------------ promotion */
+
+.chess-promotion {
+  position: absolute;
+  z-index: 6;
+  top: 50%;
+  left: 50%;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  text-align: center;
+  transform: translate(-50%, -50%);
+}
+
+.chess-promo-title {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.chess-promo-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.chess-promo-row button {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f0ebe3;
+  cursor: pointer;
+  font-family: "Segoe UI Symbol", "Apple Symbols", "Noto Sans Symbols 2", "DejaVu Sans", Georgia, serif;
+  font-size: 1.8rem;
+  line-height: 1;
+}
+
+.chess-promo-row button:hover {
+  border-color: var(--ink);
+}
+
+.chess-promo-row button:focus-visible {
+  outline: 3px solid var(--teal-dark);
+  outline-offset: 2px;
+}
+
+/* ---- responsive overrides (media queries last so they win) ---- */
+
+@media (max-width: 900px) {
+  .chess-square {
+    font-size: clamp(1.5rem, 6.4vw, 2.9rem);
+  }
+}
+
+@media (max-width: 650px) {
+  .chess-coord {
+    font-size: 0.46rem;
+  }
+
+  .chess-promo-row button {
+    width: 42px;
+    height: 42px;
+    font-size: 1.6rem;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .chess-square.dark {
+    background: #9c8567;
+  }
+
+  .chess-coord {
+    color: var(--ink);
+  }
+
+  .chess-square.dark .chess-coord {
+    color: #ffffff;
+  }
+}

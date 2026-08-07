@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Chess Lab | Chupeng Wei</title>
+    <meta name="description" content="Play chess against a browser-resident engine, or follow a live game move by move, with an analysis view that names the computation behind every line it shows." />
+    <meta name="theme-color" content="#fafaf9" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Chupeng Wei" />
+    <meta property="og:title" content="Chess Lab | Chupeng Wei" />
+    <meta property="og:description" content="A clean board, an adjustable opponent, and an analysis view for understanding why a move works." />
+    <meta property="og:url" content="https://cpwei.qzz.io/chess" />
+    <meta property="og:image" content="https://cpwei.qzz.io/assets/cpwei-social-card.jpg" />
+    <meta property="og:image:alt" content="Chupeng Wei &mdash; AI systems, evaluation and scientific software" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Chess Lab | Chupeng Wei" />
+    <meta name="twitter:description" content="A clean board, an adjustable opponent, and an analysis view that shows its work." />
+    <meta name="twitter:image" content="https://cpwei.qzz.io/assets/cpwei-social-card.jpg" />
+    <link rel="canonical" href="https://cpwei.qzz.io/chess" />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <link rel="stylesheet" href="base.css" />
+    <link rel="stylesheet" href="chess.css" />
+    <link rel="stylesheet" href="chess-stage.css" />
+    <link rel="stylesheet" href="chess-panel.css" />
+    <link rel="stylesheet" href="chess-board.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#game">Skip to the board</a>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Chupeng Wei home"><span class="brand-mark">cp</span><span>cpwei</span></a>
+      <nav aria-label="Game navigation"><a href="/projects">Projects</a><a href="/fun">Fun</a><a href="/resume">Resume</a><a href="/#contact">Contact</a></nav>
+    </header>
+
+    <main id="main-content" class="chess-main" tabindex="-1">
+      <section class="game-hero">
+        <div>
+          <p class="eyebrow">Playable system &middot; CHESS/64</p>
+          <h1>A clean board,<br />and the reason<br />behind the move.</h1>
+        </div>
+        <div class="game-hero-copy">
+          <p>Play a full game against an engine that lives entirely in this page &mdash; or put the engine in Record mode, type in the moves of a game happening on a real board, and read what it thinks of each one.</p>
+          <div class="page-actions"><a href="#game">Open the board</a><a href="#notes">What Record mode is for</a></div>
+        </div>
+      </section>
+
+      <section id="game" class="game-shell" aria-labelledby="game-title">
+        <aside class="game-controls">
+          <div class="chess-controls-head">
+            <p class="game-kicker">Board &middot; engine &middot; record</p>
+            <h2 id="game-title">Chess<br />Lab</h2>
+            <p class="game-intro">Click a piece to see its legal squares, then click one. Everything below is a setting; nothing is sent anywhere.</p>
+          </div>
+
+          <fieldset>
+            <legend>Mode</legend>
+            <div class="game-segmented">
+              <button type="button" data-mode="play" aria-pressed="true">Play</button>
+              <button type="button" data-mode="record" aria-pressed="false">Record</button>
+            </div>
+            <p class="chess-note">Play answers your move. Record never moves a piece: it is for following a game on a physical board. Enter each move as it is played, for either side, and the engine analyses the position it produced.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>Your colour</legend>
+            <div class="game-segmented">
+              <button type="button" data-side="white" aria-pressed="true">White</button>
+              <button type="button" data-side="black" aria-pressed="false">Black</button>
+            </div>
+            <p class="chess-note">Changing colour starts a new game.</p>
+          </fieldset>
+
+          <label class="game-label" for="level">Opponent</label>
+          <select id="level">
+            <option value="casual">Casual</option>
+            <option value="club">Club</option>
+            <option value="focused" selected>Focused</option>
+            <option value="deep">Deep</option>
+          </select>
+          <p class="chess-note">Each level sets a thinking budget and how much noise the engine tolerates in its own choices. These are settings, not ratings: no playing strength has been measured yet.</p>
+          <button id="new-game" class="game-primary" type="button">New game <span aria-hidden="true">&rarr;</span></button>
+
+          <div class="chess-actions">
+            <button id="undo" class="chess-btn" type="button">Undo</button>
+            <button id="redo" class="chess-btn" type="button">Redo</button>
+            <button id="flip" class="chess-btn" type="button">Flip board</button>
+            <button id="hint" class="chess-btn chess-btn-wide" type="button">Analyse, do not move</button>
+          </div>
+
+          <div class="game-history">
+            <div class="game-history-head"><span>Game record</span><span id="move-count">00</span></div>
+            <ol id="move-list"><li class="empty-log">One line per full move, as it would be written on a scoresheet.</li></ol>
+          </div>
+        </aside>
+
+        <div class="game-stage">
+          <div class="game-status chess-status">
+            <p class="chess-status-live" role="status" aria-live="polite"><span id="status-dot" aria-hidden="true"></span><span id="status-text">White to move.</span></p>
+            <span id="thinking" class="chess-thinking" hidden>thinking</span>
+          </div>
+
+          <div class="chess-board-frame">
+            <div id="board" class="chess-board" role="group" aria-label="Chess board"></div>
+            <div id="promotion-dialog" class="chess-promotion" role="dialog" aria-modal="true" aria-labelledby="promotion-heading" hidden>
+              <p id="promotion-heading" class="chess-promo-title">Promote to</p>
+              <div class="chess-promo-row">
+                <button type="button" data-promo="q" aria-label="Queen">&#9819;</button>
+                <button type="button" data-promo="r" aria-label="Rook">&#9820;</button>
+                <button type="button" data-promo="b" aria-label="Bishop">&#9821;</button>
+                <button type="button" data-promo="n" aria-label="Knight">&#9822;</button>
+              </div>
+            </div>
+          </div>
+
+          <noscript><p class="chess-noscript">The board needs JavaScript. The rules, the evaluation and the search are all plain modules that run in this tab &mdash; there is no server to fall back to, and nothing to log in to.</p></noscript>
+
+          <div class="chess-eval">
+            <div id="eval-bar" class="chess-eval-bar" role="img" aria-label="Evaluation bar: level"><div id="eval-fill" class="chess-eval-fill"></div></div>
+            <span id="eval-score" class="chess-eval-score">0.0</span>
+          </div>
+
+          <div class="chess-captured">
+            <div class="chess-captured-side"><span class="chess-captured-tag">White pieces taken</span><div id="captured-white" class="chess-captured-row"></div></div>
+            <div class="chess-captured-side"><span class="chess-captured-tag">Black pieces taken</span><div id="captured-black" class="chess-captured-row"></div></div>
+          </div>
+        </div>
+
+        <aside class="chess-analysis" aria-labelledby="analysis-title">
+          <div class="chess-panel-head">
+            <p class="game-kicker">Analysis</p>
+            <span id="analysis-depth" class="chess-depth">not run yet</span>
+          </div>
+          <h2 id="analysis-title" class="chess-panel-title">What the engine sees</h2>
+          <p id="analysis-headline" class="chess-headline">Nothing has been searched yet. Make a move, or ask for an analysis without one.</p>
+
+          <p class="game-label">Candidate lines</p>
+          <ol id="analysis-lines" class="chess-lines"><li class="chess-empty">The lines the engine prefers appear here, best first, with the score it gave each one.</li></ol>
+
+          <p class="game-label">Reasons</p>
+          <ul id="analysis-why" class="chess-why"><li class="chess-empty">Every bullet names the computation that produced it &mdash; a search score, a static exchange, one evaluation term. A claim with nothing behind it is not shown.</li></ul>
+
+          <div class="chess-review">
+            <div class="chess-panel-head"><p class="game-label">Last move</p><span id="review-label" class="chess-review-label">not reviewed</span></div>
+            <p id="review-detail" class="chess-review-detail">Once a move has been played by hand, this compares it with the move the engine preferred, and says how much the difference was worth.</p>
+          </div>
+
+          <div class="chess-io">
+            <label class="game-label" for="san-input">Enter a move</label>
+            <div class="chess-io-row">
+              <input id="san-input" class="chess-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Nf3, exd5, O-O, e2e4" />
+              <button id="san-submit" class="chess-btn" type="button">Enter</button>
+            </div>
+            <p class="chess-note">Written the way a scoresheet is written, and forgiving about it: plain coordinates work, and the capture and check marks are optional.</p>
+
+            <label class="game-label" for="fen-input">Position</label>
+            <div class="chess-io-row">
+              <input id="fen-input" class="chess-input" type="text" autocomplete="off" spellcheck="false" placeholder="Paste a FEN to set the board" />
+              <button id="fen-load" class="chess-btn" type="button">Load</button>
+              <button id="fen-copy" class="chess-btn" type="button">Copy</button>
+            </div>
+          </div>
+        </aside>
+      </section>
+
+      <section id="notes" class="game-notes" aria-label="How the lab works">
+        <article><span>01</span><h2>Record mode follows a real game.</h2><p>Switch to Record and the engine stops playing. Enter the moves as they happen at the board, for whichever side just moved, and after each one you get a fresh evaluation, the candidate lines, and a verdict on the move that was actually made. It will not touch a piece on its own.</p></article>
+        <article><span>02</span><h2>Both modes share one game.</h2><p>Position, move list, undo and repetition counts survive the switch. Start a game against the engine, move to Record when a friend sits down, and go back &mdash; nothing is rebuilt behind your back.</p></article>
+        <article><span>03</span><h2>Analysis has to cite itself.</h2><p>Each bullet in the panel carries the calculation that produced it. If no named computation supports a sentence, the page would rather say nothing than narrate.</p></article>
+      </section>
+    </main>
+
+    <footer><span>Chupeng Wei</span><span>Playable systems &middot; CHESS/64</span></footer>
+    <script type="module" src="./lib/app.js"></script>
+  </body>
+</html>

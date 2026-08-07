@@ -1,0 +1,213 @@
+/* chess-panel.css - CHESS/64: the analysis panel (candidate lines, reasons,
+   last-move review), the move and FEN inputs, and the notes cards at the foot
+   of the page. Loaded after chess.css.
+
+   Media queries stay at the end of this file for the same cascade reason given
+   in chess-stage.css. */
+/* ------------------------------------------------------------ analysis */
+
+.chess-analysis {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: #fbfaf9;
+}
+
+.chess-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.chess-depth {
+  color: var(--muted);
+}
+
+.chess-panel-title {
+  margin-top: 10px;
+  font-size: clamp(1.35rem, 2vw, 1.7rem);
+}
+
+.chess-headline {
+  margin-top: 10px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.chess-lines,
+.chess-why {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chess-lines li {
+  padding: 7px 0;
+  border-bottom: 1px solid var(--line);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+
+.chess-why li {
+  padding: 7px 0 7px 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.79rem;
+  line-height: 1.5;
+  text-indent: -14px;
+}
+
+.chess-why li::before {
+  content: "-- ";
+  color: var(--cardinal);
+}
+
+.chess-empty,
+.chess-review-detail {
+  color: var(--muted);
+}
+
+/* Score first, then the line. The score keeps its own column so the moves of
+   one candidate line never start where another line's score ended. */
+.chess-line-score {
+  display: inline-block;
+  min-width: 62px;
+  margin-right: 8px;
+  color: var(--teal-dark);
+  font-weight: 800;
+}
+
+/* The basis tag is deliberately quiet: it is a citation, not a sentence. */
+.chess-basis {
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.chess-review-label[data-label="best"],
+.chess-review-label[data-label="good"] {
+  color: var(--teal-dark);
+}
+
+.chess-review-label[data-label="inaccuracy"] {
+  color: var(--amber);
+}
+
+.chess-review-label[data-label="mistake"],
+.chess-review-label[data-label="blunder"] {
+  color: var(--cardinal);
+}
+
+.chess-empty {
+  border-bottom: 0;
+  font-family: inherit;
+  font-size: 0.76rem;
+  text-indent: 0;
+  padding-left: 0;
+}
+
+.chess-empty::before {
+  content: none;
+}
+
+.chess-review {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.chess-review-label {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.chess-review-detail {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.chess-io {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.chess-io .game-label:first-child {
+  margin-top: 0;
+}
+
+.chess-io-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chess-io-row .chess-btn {
+  flex: 0 0 auto;
+}
+
+/* --------------------------------------------------------------- notes */
+
+.game-notes {
+  width: min(1152px, calc(100% - 44px));
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 0 auto 84px;
+}
+
+.game-notes article {
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--panel);
+}
+
+.game-notes article > span {
+  color: var(--cardinal);
+  font: 800 0.68rem ui-monospace, monospace;
+}
+
+.game-notes h2 {
+  margin-top: 26px;
+  font-size: 1.5rem;
+}
+
+.game-notes p {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.game-segmented button:focus-visible,
+.game-controls select:focus-visible,
+.game-primary:focus-visible,
+.chess-btn:focus-visible,
+.chess-input:focus-visible {
+  outline: 3px solid var(--teal-dark);
+  outline-offset: 2px;
+}
+
+
+
+/* ---- responsive overrides (media queries last so they win) ---- */
+
+@media (max-width: 1140px) {
+  .chess-analysis {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 650px) {
+  .game-notes {
+    width: min(100% - 24px, 1152px);
+    grid-template-columns: 1fr;
+  }
+}

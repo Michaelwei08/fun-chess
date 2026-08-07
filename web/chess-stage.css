@@ -1,0 +1,177 @@
+/* chess-stage.css - CHESS/64: the game record, the status line, the evaluation
+   bar and the captured-piece strips. Everything that reports state around the
+   board, as opposed to the board itself (chess-board.css) or the analysis
+   panel (chess-panel.css). Loaded after chess.css.
+
+   Media queries stay at the end of this file because the rules they override
+   are defined here: a copy of them in chess.css would load first and lose. */
+/* ------------------------------------------------------------- history */
+
+.game-history {
+  margin-top: auto;
+  padding-top: 26px;
+}
+
+.game-history-head {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+}
+
+#move-list {
+  max-height: 168px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+#move-list li {
+  display: grid;
+  grid-template-columns: 30px 1fr 1fr;
+  gap: 6px;
+  padding: 7px 2px;
+  border-bottom: 1px solid var(--line);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.72rem;
+}
+
+#move-list .empty-log {
+  display: block;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+
+/* --------------------------------------------------------------- stage */
+
+.game-stage {
+  min-width: 0;
+  justify-self: center;
+  width: min(100%, 640px);
+}
+
+.game-status {
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 14px;
+  border: 1px solid var(--line);
+  border-radius: 18px 18px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.chess-status-live {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+#status-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--teal);
+}
+
+.chess-thinking {
+  flex: 0 0 auto;
+  color: var(--cardinal);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.chess-noscript {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+
+/* The bar is one graphic with one label. Sixty-four spans read out cell by
+   cell is the mistake this replaces: app.js keeps the aria-label current. */
+.chess-eval {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 3px 0;
+}
+
+.chess-eval-bar {
+  flex: 1 1 auto;
+  height: 12px;
+  overflow: hidden;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--ink);
+}
+
+.chess-eval-fill {
+  width: 50%;
+  height: 100%;
+  background: #f5f5f4;
+}
+
+.chess-eval-score {
+  flex: 0 0 auto;
+  min-width: 52px;
+  text-align: right;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.chess-captured {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.chess-captured-tag {
+  display: block;
+  color: var(--muted);
+  font-size: 0.6rem;
+}
+
+.chess-captured-row {
+  min-height: 26px;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.35;
+  word-break: break-all;
+}
+
+
+
+
+/* ---- responsive overrides (media queries last so they win) ---- */
+
+@media (max-width: 900px) {
+  .game-history {
+    grid-column: 1 / -1;
+    padding-top: 22px;
+  }
+}
+
+@media (max-width: 650px) {
+  .chess-captured {
+    grid-template-columns: 1fr;
+  }
+}

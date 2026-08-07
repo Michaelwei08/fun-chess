@@ -1,0 +1,276 @@
+/* chess.css - CHESS/64 Chess Lab: page shell, controls, analysis panel.
+   Loaded after base.css, which owns the tokens, the header and the footer.
+   Board, squares, pieces and the promotion dialog live in chess-board.css.
+
+   The site's game.css is deliberately NOT loaded here: this page ships as a
+   two-stylesheet page, so the shared .game-* vocabulary it borrows from
+   /ultimate-tic-tac-toe is restated below rather than imported. Keep the
+   restated values in step with personal_website/game.css. */
+
+[hidden] {
+  display: none;
+}
+
+.chess-main {
+  padding-top: 94px;
+}
+
+/* ---------------------------------------------------------------- hero */
+
+.game-hero {
+  width: min(1152px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.7fr);
+  gap: clamp(30px, 7vw, 96px);
+  align-items: end;
+  margin: 0 auto;
+  padding: clamp(56px, 8vw, 96px) 24px 48px;
+  border-bottom: 1px solid var(--line);
+}
+
+.game-hero h1 {
+  max-width: 760px;
+  margin-top: 14px;
+  font-size: clamp(2.9rem, 6.2vw, 5.4rem);
+  line-height: 0.92;
+}
+
+.game-hero-copy > p {
+  color: var(--muted);
+  font-size: 1.05rem;
+  font-weight: 300;
+  line-height: 1.7;
+}
+
+.page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.page-actions a {
+  padding: 11px 16px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+/* --------------------------------------------------------------- shell */
+
+.game-shell {
+  width: min(1240px, calc(100% - 44px));
+  display: grid;
+  grid-template-columns: minmax(206px, 0.46fr) minmax(0, 1fr) minmax(238px, 0.64fr);
+  gap: clamp(20px, 2.6vw, 38px);
+  margin: 52px auto 30px;
+  padding: clamp(18px, 2.6vw, 36px);
+  border: 1px solid var(--line);
+  border-radius: 40px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  scroll-margin-top: 100px;
+}
+
+.game-controls {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-kicker {
+  color: var(--cardinal);
+}
+
+.game-kicker,
+.game-controls legend,
+.game-label,
+.game-history-head,
+.chess-depth,
+.chess-captured-tag {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.game-controls h2 {
+  margin-top: 12px;
+  font-size: clamp(2rem, 3.6vw, 3.2rem);
+}
+
+.game-intro,
+.chess-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.game-intro {
+  margin-top: 16px;
+  font-size: 0.88rem;
+}
+
+.chess-note {
+  margin-top: 8px;
+  font-size: 0.76rem;
+}
+
+.game-controls fieldset {
+  margin: 20px 0 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+
+.game-controls legend,
+.game-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+
+.game-label {
+  margin-top: 20px;
+}
+
+.game-segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.game-segmented button {
+  min-height: 40px;
+  border: 0;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.game-segmented button[aria-pressed="true"] {
+  color: white;
+  background: var(--ink);
+}
+
+.game-controls select,
+.chess-input {
+  width: 100%;
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 14px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  font: inherit;
+  font-size: 0.84rem;
+}
+
+.game-primary {
+  min-height: 46px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding: 0 18px;
+  color: white;
+  border: 0;
+  border-radius: 999px;
+  background: var(--teal-dark);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.chess-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.chess-btn {
+  min-height: 38px;
+  padding: 0 12px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  cursor: pointer;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.chess-btn:hover:enabled {
+  border-color: var(--ink);
+}
+
+.chess-btn:disabled {
+  color: var(--line);
+  cursor: not-allowed;
+}
+
+.chess-btn-wide {
+  grid-column: 1 / -1;
+}
+
+/* ---- responsive overrides (media queries last so they win) ---- */
+
+/* Overrides for .chess-analysis, .game-notes, .game-history and .chess-captured
+   live in the stylesheet that defines them: those files load after this one, so
+   a media rule here would lose the cascade to their base rules. */
+@media (max-width: 1140px) {
+  .game-shell {
+    grid-template-columns: minmax(200px, 0.52fr) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .chess-main {
+    padding-top: 0;
+  }
+
+  .game-hero,
+  .game-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .game-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap: 0 18px;
+  }
+
+  .chess-controls-head,
+  .chess-actions {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 650px) {
+  .game-shell {
+    width: min(100% - 24px, 1240px);
+    padding: 16px;
+    border-radius: 28px;
+  }
+
+  .game-controls {
+    grid-template-columns: 1fr;
+  }
+
+  .game-controls > * {
+    grid-column: 1;
+  }
+
+  .chess-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
