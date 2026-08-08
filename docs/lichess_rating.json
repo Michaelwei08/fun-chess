@@ -1,0 +1,18 @@
+{
+  "site": "lichess.org",
+  "username": "Bot135",
+  "pool": "blitz 3+2 vs BOT accounts",
+  "level": "focused",
+  "budgetMs": 600,
+  "rating": 2220,
+  "rd": 124,
+  "games": 30,
+  "provisional": true,
+  "wins": 16,
+  "losses": 12,
+  "draws": 1,
+  "recordAsOfGames": 25,
+  "measuredOn": "2026-08-08",
+  "note": "Run halted before convergence. The client over-drove the Lichess API -- a challenge interval cut to 7s, a flat 60s cooldown that retried at the same rate, and per-cycle polling of the bot list and our own rating -- which produced 44 consecutive 429s and then a block covering reads as well as writes, still in force after 2 hours of probing at 10-minute intervals. The rating below is the last verified read. The W/L/D counts are from the last full read at 25 games, five games earlier than the rating; they are not the record at game 30.",
+  "converged": false
+}

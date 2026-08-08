@@ -216,6 +216,30 @@
   and a larger `bench.mjs` run than the 10-games-per-pairing sample.
 
 ## Incidents
+- Incident: The Lichess API blocked us, and it was self-inflicted
+  - Symptoms: 2026-08-08 [TOOL]: 44 consecutive `429 Too many requests` on
+    challenge creation, then a block covering **reads** as well:
+    `GET /api/user/Bot135` returned 429 for over two hours, probed at
+    10-minute intervals. The calibration run stopped at 30 games with the rating
+    still provisional.
+  - Evidence: 2026-08-08 [CODE]: Three compounding causes, all ours. The
+    challenge interval was cut from 20 s to 7 s to speed up convergence. The 429
+    handler used a flat 60 s cooldown and then retried at the same rate, so each
+    cooldown ended in another 429. And `pickOpponents` re-fetched
+    `/api/bot/online` while `ourRating` re-read the account on every matchmaker
+    cycle -- a request every ~18 s for data that only changes when a game ends --
+    on top of an external tracker polling the same endpoint every 60 s.
+  - Mitigation: 2026-08-08 [CODE]: All traffic stopped rather than retried.
+    Backoff is now exponential per consecutive 429 up to 15 minutes and is
+    cleared only by a success; the bot list and our rating are cached; the
+    default challenge gap is back above 15 s.
+  - Status: 2026-08-08 [TOOL]: UNRESOLVED at the two-hour mark. The last verified
+    read (2220, RD 124, 30 games, provisional) is recorded in
+    `docs/lichess_rating.json` with `converged: false`, and the generated report
+    prints that caveat above the number.
+  - Lesson: 2026-08-08 [USER]: Throughput knobs on someone else's API are not
+    ours to tune by trial. The 7 s gap bought perhaps two extra games per hour
+    and cost the whole measurement.
 - Incident: The subagent fleet died mid-build
   - Symptoms: 2026-08-07 [TOOL]: A four-phase workflow (rules + shell, two
     adversarial verifiers, a fixer) failed after ~8 minutes with "You've hit your

@@ -171,9 +171,13 @@ relative. Run \`node scripts/lichess_bot.mjs --play --auto\` to anchor it.`;
     ? `**still provisional** (Lichess clears that flag below RD 110), so treat it as
 "somewhere around ${r.rating}", not as a settled rating`
     : 'no longer provisional';
+  const caveat = r.converged === false
+    ? `\n> **This run did not converge.** ${r.note}\n`
+    : '';
   return `Measured by playing rated games on ${r.site} as \`${r.username}\`, a declared
 BOT account, at the **${r.level}** level (${r.budgetMs} ms per move -- the setting a
 visitor to the page actually plays against).
+${caveat}
 
 | pool | rating | RD | games | record |
 |---|---|---|---|---|
@@ -281,13 +285,12 @@ ${(() => {
   return table(['level', 'Elo relative to Casual'], rows, (r) => [r.level, r.rel]);
 })()}
 
-Nothing here has played an opponent whose rating is known, so **there is no
-absolute rating and none is implied**. A number comparable to a human rating
-needs games against a rated opponent; that is what \`scripts/lichess_bot.mjs\` is
-for, and until it has been run and its result recorded below, read this table as
-"Focused gives Club about this many points of handicap" and not as "this bot is
-rated N". (The site's \`connect-src 'none'\` constrains the shipped page, not a
-benchmark harness that never ships.)
+These differences say nothing about absolute strength on their own: read the
+table as "Focused gives Club about this many points of handicap", not as "this
+bot is rated N". Anchoring it needs games against opponents whose ratings are
+known, which is the separate measurement in **Absolute rating** below. (The
+site's \`connect-src 'none'\` constrains the shipped page, not a benchmark
+harness that never ships.)
 
 Two further caveats worth keeping in view: the levels play each other, and an
 engine's score against a near-copy of itself with a different budget is a poor
