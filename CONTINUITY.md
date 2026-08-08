@@ -163,6 +163,30 @@
   `bench.mjs` gained a worker mode (`--pairing`, `--seed-offset`, `--json`,
   `--merge`) so the sample could go from 10 games per pairing to 32; at 10 games
   the interval was about +/-110 Elo, which is not a number worth printing.
+- D023 ACTIVE 2026-08-08 [USER]: An absolute rating is measured on **Lichess**,
+  not chess.com. Lichess sanctions engine accounts -- BOT accounts exist for
+  exactly this -- while chess.com's terms forbid both automated access and engine
+  assistance, so running this against their bots would risk the owner's account
+  rather than produce a number. The account is `Bot135`, created for this and
+  upgraded with `POST /api/bot/account/upgrade`, which is irreversible and needs
+  an account with zero games played. The token lives in `lichess.token`
+  (gitignored via `*.token`) with only `bot:play` and `challenge:write`.
+- D024 ACTIVE 2026-08-08 [TOOL]: **Lichess seeds BOT accounts at 3000
+  provisional**, not the usual 1500, and this quietly wrecks naive matchmaking.
+  The first four games were wins by mate over bots rated 987 to 1098 and the
+  rating moved by exactly **+0** each time, with RD going 500 -> 499: a 3000
+  beating a 987 is a foregone conclusion, so Glicko learns nothing from it. A
+  hundred such games would still read 3000. `pickOpponents` therefore sorts by
+  distance from our CURRENT rating, refreshed every cycle (`--band auto`), so
+  the games are informative and the losses that follow can pull the number down
+  to the truth. Any future calibration run must check that the rating is
+  actually moving, not just that games are being won.
+- D025 ACTIVE 2026-08-08 [CODE]: The bot plays one game at a time. `search()` is
+  synchronous and blocks the process for its whole budget, so two concurrent
+  games would take turns stalling each other and the waiting one could lose on
+  time. Incoming challenges are declined while busy, sent challenges are counted
+  as pending against the same limit, and a pending challenge nobody answers
+  expires after 45 s so it cannot wedge the matchmaker.
 - D016 ACTIVE 2026-08-07 [USER]: `scripts/sync_site.py` is dry-run by default,
   refuses to run if any of its HTML substitutions does not match exactly once,
   never runs git, and prints the `_headers` / `sitemap.xml` / fun-card changes for

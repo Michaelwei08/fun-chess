@@ -51,7 +51,16 @@ const auth = { Authorization: 'Bearer ' + TOKEN };
 const engines = new Map();
 let account = null;
 let finished = 0;
+let pending = 0;          // challenges sent but not yet a game or a refusal
 const active = new Set();
+const blocked = new Set();   // opponents at their daily bot-vs-bot cap
+const CONCURRENCY = Number(args.get('concurrency') || 1);
+
+// The search is synchronous: it blocks this process for the whole budget. Two
+// games at once would therefore take turns stalling each other, and the one
+// waiting can lose on time. Everything below refuses to start a game that would
+// exceed CONCURRENCY, including incoming challenges.
+const busy = () => active.size + pending >= CONCURRENCY;
 
 async function api(path, options = {}) {
   const response = await fetch(API + path, {
@@ -59,8 +68,10 @@ async function api(path, options = {}) {
     headers: { ...auth, ...(options.headers || {}) },
   });
   if (!response.ok) {
-    throw new Error(options.method || 'GET' + ' ' + path + ' -> ' + response.status + ' ' +
-      (await response.text()).slice(0, 200));
+    // The parentheses matter: without them the concatenation binds first and
+    // every failure reports the bare word "POST" with no status and no body.
+    throw new Error((options.method || 'GET') + ' ' + path + ' -> ' + response.status +
+      ' ' + (await response.text()).slice(0, 300));
   }
   return response;
 }
@@ -148,6 +159,7 @@ async function playGame(gameId) {
 }
 
 async function acceptable(challenge) {
+  if (busy()) return 'already playing';
   if (challenge.variant.key !== 'standard') return 'not standard chess';
   if (challenge.timeControl.type !== 'clock') return 'no clock';
   const initial = challenge.timeControl.limit;
@@ -202,8 +214,10 @@ async function main() {
         console.log('accepted ' + event.challenge.id);
       }
     } else if (event.type === 'gameStart') {
+      pending = Math.max(0, pending - 1);
       playGame(event.game.gameId || event.game.id);
     } else if (event.type === 'challengeDeclined') {
+      pending = Math.max(0, pending - 1);
       console.log('opponent declined ' + event.challenge.id);
     }
     if (finished >= MAX_GAMES && active.size === 0) {
@@ -222,41 +236,71 @@ async function challenge(opponent) {
   });
   try {
     await api('/api/challenge/' + opponent, { method: 'POST', body });
+    pending++;
     console.log('challenged ' + opponent);
+    // A challenge nobody answers would pin `pending` high forever and stall the
+    // matchmaker, so it expires on its own.
+    setTimeout(() => { pending = Math.max(0, pending - 1); }, 45000);
     return true;
   } catch (error) {
-    console.error('challenge to ' + opponent + ' failed: ' + error.message);
+    // Lichess caps bot-versus-bot games at 100 per bot per day, and the popular
+    // strong bots are usually already at the cap. Retrying them just burns the
+    // matchmaker's cycles, so they are dropped for the rest of the run.
+    if (/bot\.vsBot\.day|played 100 games/.test(error.message)) {
+      blocked.add(opponent);
+      console.log('skipping ' + opponent + ' for today: at its bot-vs-bot limit');
+    } else {
+      console.error('challenge to ' + opponent + ' failed: ' + error.message);
+    }
     return false;
   }
 }
 
+async function ourRating() {
+  try {
+    const user = await (await fetch(API + '/api/user/' + account.id)).json();
+    return user.perfs && user.perfs.blitz ? user.perfs.blitz.rating : 1500;
+  } catch { return 1500; }
+}
+
 // Opponents with a settled rating make better yardsticks than opponents whose
-// own rating is still moving, so anything with few games is skipped. The first
-// games deliberately spread across the band: Glicko needs to bracket us before
-// it is worth narrowing in.
+// own rating is still moving, so anything with few games is skipped.
+//
+// --band auto sorts by how close the opponent is to our CURRENT rating, which
+// is the whole game with Glicko: a result only carries information when it was
+// not a foregone conclusion. Lichess seeds BOT accounts at 3000 provisional, so
+// a fixed low band means winning every game, learning nothing, and sitting at
+// 3000 forever. Beating a 987 when you are rated 3000 moves the number by +0.
 async function pickOpponents() {
-  const [low, high] = (args.get('band') || '900:2000').split(':').map(Number);
-  const text = await (await fetch(API + '/api/bot/online?nb=80')).text();
-  const bots = text.split('\n').filter(Boolean).map((line) => JSON.parse(line))
+  const band = args.get('band') || 'auto';
+  const text = await (await fetch(API + '/api/bot/online?nb=100')).text();
+  let bots = text.split('\n').filter(Boolean).map((line) => JSON.parse(line))
     .map((bot) => ({ id: bot.id, rating: bot.perfs && bot.perfs.blitz ? bot.perfs.blitz.rating : 0,
       games: bot.perfs && bot.perfs.blitz ? bot.perfs.blitz.games : 0 }))
-    .filter((bot) => bot.rating >= low && bot.rating <= high && bot.games >= 300 && bot.id !== account.id)
+    .filter((bot) => bot.rating > 0 && bot.games >= 300 && bot.id !== account.id
+      && !blocked.has(bot.id));
+  if (band === 'auto') {
+    const mine = await ourRating();
+    bots.sort((a, b) => Math.abs(a.rating - mine) - Math.abs(b.rating - mine));
+    return bots;
+  }
+  const [low, high] = band.split(':').map(Number);
+  return bots.filter((bot) => bot.rating >= low && bot.rating <= high)
     .sort((a, b) => a.rating - b.rating);
-  return bots;
 }
 
 async function runMatchmaker() {
   const tried = new Map();
-  const concurrency = Number(args.get('concurrency') || 1);
   while (finished < MAX_GAMES) {
-    if (active.size >= concurrency || finished + active.size >= MAX_GAMES) {
+    if (busy() || finished + active.size + pending >= MAX_GAMES) {
       await new Promise((r) => setTimeout(r, 5000));
       continue;
     }
     const pool = await pickOpponents().catch(() => []);
     if (!pool.length) { await new Promise((r) => setTimeout(r, 30000)); continue; }
-    // Least recently tried first, so one obliging bot does not become the whole
-    // sample and one that ignores us does not block the run.
+    // Stable-sort by attempt count so the pool order (closeness to our rating)
+    // still decides among equally-tried opponents: one obliging bot must not
+    // become the whole sample, and one that ignores us must not block the run.
     pool.sort((a, b) => (tried.get(a.id) || 0) - (tried.get(b.id) || 0));
     const target = pool[0];
     tried.set(target.id, (tried.get(target.id) || 0) + 1);
