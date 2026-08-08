@@ -235,12 +235,20 @@ async function challenge(opponent) {
     variant: 'standard',
   });
   try {
-    await api('/api/challenge/' + opponent, { method: 'POST', body });
+    const created = await (await api('/api/challenge/' + opponent, { method: 'POST', body })).json();
+    const id = (created.challenge && created.challenge.id) || created.id;
     pending++;
     console.log('challenged ' + opponent);
     // A challenge nobody answers would pin `pending` high forever and stall the
-    // matchmaker, so it expires on its own.
-    setTimeout(() => { pending = Math.max(0, pending - 1); }, 45000);
+    // matchmaker, so it expires. It must be CANCELLED at the same time, not just
+    // forgotten: an abandoned challenge stays live on Lichess and can be
+    // accepted minutes later, which is how four games once started before any
+    // of them had finished, with one synchronous engine trying to serve them
+    // all.
+    setTimeout(async () => {
+      pending = Math.max(0, pending - 1);
+      if (id) await api('/api/challenge/' + id + '/cancel', { method: 'POST' }).catch(() => {});
+    }, 45000);
     return true;
   } catch (error) {
     // Lichess caps bot-versus-bot games at 100 per bot per day, and the popular
