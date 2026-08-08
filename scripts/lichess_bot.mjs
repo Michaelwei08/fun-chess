@@ -184,25 +184,13 @@ async function main() {
   }
 
   if (args.get('challenge')) {
-    for (const opponent of args.get('challenge').split(',')) {
-      const body = new URLSearchParams({
-        rated: String(args.get('rated') === 'true'),
-        'clock.limit': String(args.get('clock-limit') || 180),
-        'clock.increment': String(args.get('clock-increment') || 2),
-        variant: 'standard',
-      });
-      try {
-        await api('/api/challenge/' + opponent.trim(), { method: 'POST', body });
-        console.log('challenged ' + opponent.trim());
-      } catch (error) {
-        console.error('challenge to ' + opponent.trim() + ' failed: ' + error.message);
-      }
-    }
+    for (const opponent of args.get('challenge').split(',')) await challenge(opponent.trim());
   }
+  if (args.get('auto')) runMatchmaker();
 
   console.log('listening for games (stops after ' + MAX_GAMES + ')');
   for await (const event of ndjson('/api/stream/event')) {
-    if (event.type === 'challenge') {
+    if (event.type === 'challenge' && event.challenge.challenger.id !== account.id) {
       const reason = await acceptable(event.challenge);
       if (reason) {
         await api('/api/challenge/' + event.challenge.id + '/decline', {
@@ -215,11 +203,66 @@ async function main() {
       }
     } else if (event.type === 'gameStart') {
       playGame(event.game.gameId || event.game.id);
+    } else if (event.type === 'challengeDeclined') {
+      console.log('opponent declined ' + event.challenge.id);
     }
     if (finished >= MAX_GAMES && active.size === 0) {
       console.log('played ' + finished + ' games, stopping');
       break;
     }
+  }
+}
+
+async function challenge(opponent) {
+  const body = new URLSearchParams({
+    rated: String(args.get('rated') !== 'false'),
+    'clock.limit': String(args.get('clock-limit') || 180),
+    'clock.increment': String(args.get('clock-increment') || 2),
+    variant: 'standard',
+  });
+  try {
+    await api('/api/challenge/' + opponent, { method: 'POST', body });
+    console.log('challenged ' + opponent);
+    return true;
+  } catch (error) {
+    console.error('challenge to ' + opponent + ' failed: ' + error.message);
+    return false;
+  }
+}
+
+// Opponents with a settled rating make better yardsticks than opponents whose
+// own rating is still moving, so anything with few games is skipped. The first
+// games deliberately spread across the band: Glicko needs to bracket us before
+// it is worth narrowing in.
+async function pickOpponents() {
+  const [low, high] = (args.get('band') || '900:2000').split(':').map(Number);
+  const text = await (await fetch(API + '/api/bot/online?nb=80')).text();
+  const bots = text.split('\n').filter(Boolean).map((line) => JSON.parse(line))
+    .map((bot) => ({ id: bot.id, rating: bot.perfs && bot.perfs.blitz ? bot.perfs.blitz.rating : 0,
+      games: bot.perfs && bot.perfs.blitz ? bot.perfs.blitz.games : 0 }))
+    .filter((bot) => bot.rating >= low && bot.rating <= high && bot.games >= 300 && bot.id !== account.id)
+    .sort((a, b) => a.rating - b.rating);
+  return bots;
+}
+
+async function runMatchmaker() {
+  const tried = new Map();
+  const concurrency = Number(args.get('concurrency') || 1);
+  while (finished < MAX_GAMES) {
+    if (active.size >= concurrency || finished + active.size >= MAX_GAMES) {
+      await new Promise((r) => setTimeout(r, 5000));
+      continue;
+    }
+    const pool = await pickOpponents().catch(() => []);
+    if (!pool.length) { await new Promise((r) => setTimeout(r, 30000)); continue; }
+    // Least recently tried first, so one obliging bot does not become the whole
+    // sample and one that ignores us does not block the run.
+    pool.sort((a, b) => (tried.get(a.id) || 0) - (tried.get(b.id) || 0));
+    const target = pool[0];
+    tried.set(target.id, (tried.get(target.id) || 0) + 1);
+    console.log('matchmaker: ' + target.id + ' (blitz ' + target.rating + ', ' + target.games + ' games)');
+    await challenge(target.id);
+    await new Promise((r) => setTimeout(r, 20000));
   }
 }
 
