@@ -151,6 +151,18 @@
   speed on the tactical one. It ships because the opponent plays at multiPv 1.
   This is the shape of every tuning claim in this project: measured in the
   configuration it actually runs in, or not made.
+- D022 ACTIVE 2026-08-07 [USER]: An Elo figure was requested for reference. What
+  the data can support is a **relative** Elo: the difference between two levels,
+  converted from the score of games they played against each other, with a 95%
+  interval on each step and a lower bound where a pairing was a clean sweep. An
+  absolute rating is not derivable here and is not written anywhere -- no
+  opponent of known strength has ever been played, and the site's CSP forbids the
+  network that would be needed to play one. Two caveats travel with the table:
+  levels playing near-copies of themselves predict little about a differently
+  built opponent, and the interval belongs to every step of the ladder.
+  `bench.mjs` gained a worker mode (`--pairing`, `--seed-offset`, `--json`,
+  `--merge`) so the sample could go from 10 games per pairing to 32; at 10 games
+  the interval was about +/-110 Elo, which is not a number worth printing.
 - D016 ACTIVE 2026-08-07 [USER]: `scripts/sync_site.py` is dry-run by default,
   refuses to run if any of its HTML substitutions does not match exactly once,
   never runs git, and prints the `_headers` / `sitemap.xml` / fun-card changes for

@@ -88,9 +88,12 @@ bullet of every position in a whole game.
 
 **Levels are budgets, not ratings.** `LEVELS` in `engine.js` sets a time budget
 and `randomCp`, the noise the engine tolerates when picking among root moves. The
-search itself is never weakened. Do not put an Elo number in the UI or the docs;
-`docs/measurements.md` is the only place strength claims may live, with their
-sample size.
+search itself is never weakened. `docs/measurements.md` is the only place a
+strength claim may live, and the only Elo allowed there is the **difference
+between two of these levels**, computed from games they played against each
+other, with its interval. An absolute rating would need games against an
+opponent of known strength, which this project has never played; do not write
+one anywhere, and never in the UI.
 
 **Play mode hides the engine's pick.** In Play mode the panel deliberately does
 not show candidate lines for a position the human is about to move in -- that

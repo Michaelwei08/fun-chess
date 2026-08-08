@@ -9,22 +9,22 @@ sample size shown.
 
 | position | level | mode | depth | seldepth | nodes | ms | knodes/s |
 |---|---|---|---|---|---|---|---|
-| opening | focused | playing | 7 | 15 | 217,360 | 251 | 866 |
-| opening | focused | analysing | 7 | 14 | 321,753 | 323 | 996 |
-| opening | deep | playing | 8 | 22 | 763,258 | 798 | 956 |
-| opening | deep | analysing | 7 | 14 | 321,753 | 1200 | 268 |
-| middlegame | focused | playing | 6 | 18 | 390,538 | 460 | 849 |
-| middlegame | focused | analysing | 4 | 21 | 185,087 | 210 | 881 |
-| middlegame | deep | playing | 6 | 18 | 390,538 | 454 | 860 |
-| middlegame | deep | analysing | 5 | 21 | 573,564 | 710 | 808 |
-| tactical | focused | playing | 6 | 19 | 456,704 | 601 | 760 |
-| tactical | focused | analysing | 4 | 23 | 235,637 | 336 | 701 |
-| tactical | deep | playing | 6 | 23 | 550,396 | 745 | 739 |
-| tactical | deep | analysing | 4 | 23 | 235,637 | 1200 | 196 |
-| endgame | focused | playing | 10 | 18 | 486,571 | 438 | 1111 |
-| endgame | focused | analysing | 7 | 15 | 363,366 | 317 | 1146 |
-| endgame | deep | playing | 11 | 19 | 1,064,327 | 898 | 1185 |
-| endgame | deep | analysing | 8 | 17 | 1,128,717 | 946 | 1193 |
+| opening | focused | playing | 7 | 15 | 217,360 | 466 | 466 |
+| opening | focused | analysing | 7 | 14 | 314,368 | 602 | 522 |
+| opening | deep | playing | 7 | 15 | 217,360 | 1203 | 181 |
+| opening | deep | analysing | 7 | 14 | 321,753 | 533 | 604 |
+| middlegame | focused | playing | 5 | 18 | 132,905 | 384 | 346 |
+| middlegame | focused | analysing | 3 | 15 | 33,452 | 172 | 194 |
+| middlegame | deep | playing | 5 | 18 | 132,905 | 451 | 295 |
+| middlegame | deep | analysing | 4 | 21 | 185,087 | 752 | 246 |
+| tactical | focused | playing | 4 | 19 | 31,038 | 602 | 52 |
+| tactical | focused | analysing | 2 | 23 | 49,186 | 285 | 173 |
+| tactical | deep | playing | 5 | 19 | 137,573 | 614 | 224 |
+| tactical | deep | analysing | 3 | 23 | 103,666 | 621 | 167 |
+| endgame | focused | playing | 7 | 15 | 71,282 | 261 | 273 |
+| endgame | focused | analysing | 6 | 14 | 79,564 | 263 | 303 |
+| endgame | deep | playing | 9 | 17 | 277,742 | 839 | 331 |
+| endgame | deep | analysing | 7 | 15 | 363,366 | 1122 | 324 |
 
 A level whose `ms` reaches its whole budget without gaining depth over the level
 below spent the tail of it on an iteration that could not finish. The search stops
@@ -43,23 +43,47 @@ it and why Focused, not Deep, is the default in the level select.
 
 | level | iterations | median ms | p90 ms | max ms |
 |---|---|---|---|---|
-| casual | 7 | 3 | 45 | 45 |
-| club | 19 | 13 | 71 | 71 |
-| focused | 24 | 35 | 159 | 253 |
-| deep | 34 | 48 | 224 | 547 |
+| casual | 7 | 5 | 122 | 122 |
+| club | 17 | 25 | 73 | 153 |
+| focused | 19 | 18 | 160 | 165 |
+| deep | 31 | 72 | 232 | 681 |
 
 ## Is the difficulty ladder ordered?
 
-10 games per pairing, 70-ply cap, openings paired so each is played
-once with each colour assignment, unfinished games adjudicated at +/-300 cp.
-Score is from the stronger setting's point of view.
+32 games per pairing, 70-ply cap, openings paired so each
+is played once with each colour assignment, unfinished games adjudicated at
++/-300 cp. Both sides search at multiPv 1, the configuration the page
+plays at. Score is from the stronger setting's point of view.
 
-| stronger | weaker | games | W | D | L | score | SE |
+| stronger | weaker | games | W | D | L | score | Elo diff (95% CI) |
 |---|---|---|---|---|---|---|---|
-| club | casual | 10 | 10 | 0 | 0 | 1.000 | +/-0.032 |
-| focused | club | 10 | 6 | 4 | 0 | 0.800 | +/-0.126 |
-| deep | focused | 10 | 3 | 5 | 2 | 0.550 | +/-0.157 |
+| club | casual | 32 | 26 | 6 | 0 | 0.906 | +394 (247 to 720) |
+| focused | club | 32 | 21 | 10 | 1 | 0.813 | +255 (129 to 503) |
+| deep | focused | 32 | 9 | 22 | 1 | 0.625 | +89 (-30 to 233) |
 
-At this sample size the standard error is about 3 points,
-so only a large gap means anything. Treat a score under about 0.65 as "not shown
-to be different" rather than as evidence the levels are equal.
+## What the Elo numbers are, and are not
+
+They are **differences between two settings of this engine**, computed from the
+game scores above with the standard logistic conversion. Stacked from the
+weakest level, and remembering that each step carries its own interval:
+
+| level | Elo relative to Casual |
+|---|---|
+| casual | 0 (anchor) |
+| club | +394 |
+| focused | +649 |
+| deep | +738 |
+
+Nothing here has played an opponent whose rating is known, so **there is no
+absolute rating and none is implied**. A number comparable to a human rating
+needs games against a rated opponent; that is what `scripts/lichess_bot.mjs` is
+for, and until it has been run and its result recorded below, read this table as
+"Focused gives Club about this many points of handicap" and not as "this bot is
+rated N". (The site's `connect-src 'none'` constrains the shipped page, not a
+benchmark harness that never ships.)
+
+Two further caveats worth keeping in view: the levels play each other, and an
+engine's score against a near-copy of itself with a different budget is a poor
+predictor of its score against a differently-built opponent; and a clean sweep
+has no finite Elo, so it is shown as a lower bound at the resolution the sample
+size supports.

@@ -3,3 +3,7 @@ __pycache__/
 .venv/
 node_modules/
 
+local_runs/
+*.token
+.env
+secrets/

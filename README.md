@@ -78,8 +78,13 @@ project's rules:
 
 The levels are **budgets, not ratings**. Casual, Club, Focused and Deep set a
 thinking time and how much noise the engine tolerates in its own choice; the
-search stays honest at every level. No Elo is claimed anywhere, because none has
-been measured. `docs/measurements.md` holds what was measured, with sample sizes.
+search stays honest at every level.
+
+`docs/measurements.md` does carry Elo, and it is worth being precise about what
+kind: it is the **difference between two settings of this engine**, converted
+from the game scores of levels playing each other, with a confidence interval on
+every step. It is not a rating. Nothing here has faced an opponent whose rating
+is known, so there is no number comparable to a human's, and the UI shows none.
 
 The opponent and the analysis panel search differently, and the reason is
 measured: scoring three root moves with a full window each, so the candidate

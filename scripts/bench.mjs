@@ -4,10 +4,17 @@
 //
 //   node scripts/bench.mjs [--games 10] [--plies 70] [--date YYYY-MM-DD] [--out docs/measurements.md]
 //
+// Ladder games are slow and embarrassingly parallel, so they can be split across
+// processes and merged afterwards:
+//
+//   node scripts/bench.mjs --pairing deep:focused --games 8 --seed-offset 24 --json runs/a.json
+//   node scripts/bench.mjs --merge runs        # speed + blocking here, games from the files
+//
 // Paired sampling, in the house style: every opening is played twice with the
-// colours swapped, so a lucky opening cannot flatter one level.
+// colours swapped, so a lucky opening cannot flatter one level. Seed offsets
+// must not overlap between workers or the same games get counted twice.
 
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync, readdirSync, mkdirSync } from 'node:fs';
 import {
   START_FEN, fromFen, generateMoves, makeMove, gameStatus, positionKey, toFen,
 } from '../web/lib/rules.js';
@@ -112,37 +119,76 @@ function playGame(whiteLevel, blackLevel, seed) {
   return 'draw';
 }
 
-function ladder() {
-  const pairings = [['casual', 'club'], ['club', 'focused'], ['focused', 'deep']];
-  const rows = [];
-  for (const [weak, strong] of pairings) {
-    let strongPoints = 0, wins = 0, losses = 0, draws = 0;
-    for (let game = 0; game < GAMES; game++) {
-      const seed = 1000 + game * 7919;
-      // Paired: the same opening is played once with each colour assignment.
-      const asWhite = game % 2 === 0;
-      const result = asWhite ? playGame(strong, weak, seed) : playGame(weak, strong, seed);
-      const strongWon = (asWhite && result === 'white') || (!asWhite && result === 'black');
-      const weakWon = (asWhite && result === 'black') || (!asWhite && result === 'white');
-      if (strongWon) { wins++; strongPoints += 1; } else if (weakWon) losses++; else { draws++; strongPoints += 0.5; }
-      process.stderr.write('.');
-    }
-    const score = strongPoints / GAMES;
-    // Normal approximation on the game score; with samples this small it is a
-    // direction, not a rating.
-    const se = Math.sqrt(Math.max(score * (1 - score), 0.01) / GAMES);
-    rows.push({ strong, weak, games: GAMES, wins, draws, losses, score, se });
+const PAIRINGS = [['club', 'casual'], ['focused', 'club'], ['deep', 'focused']];
+
+function playPairing(strong, weak, games, seedOffset) {
+  let wins = 0, losses = 0, draws = 0;
+  for (let game = 0; game < games; game++) {
+    const index = seedOffset + game;
+    const seed = 1000 + index * 7919;
+    // Paired: the same opening is played once with each colour assignment.
+    const asWhite = index % 2 === 0;
+    const result = asWhite ? playGame(strong, weak, seed) : playGame(weak, strong, seed);
+    const strongWon = (asWhite && result === 'white') || (!asWhite && result === 'black');
+    const weakWon = (asWhite && result === 'black') || (!asWhite && result === 'white');
+    if (strongWon) wins++; else if (weakWon) losses++; else draws++;
+    process.stderr.write('.');
   }
-  return rows;
+  return { strong, weak, games, wins, draws, losses };
+}
+
+// Elo from a game score. This is a DIFFERENCE between two settings of this one
+// engine, not a rating: nothing here has played anything whose rating is known.
+// A clean sweep has no finite Elo, so the score is clamped to the tightest value
+// the sample size can distinguish and the result is reported as a lower bound.
+function eloFrom(wins, draws, losses) {
+  const n = wins + draws + losses;
+  const score = (wins + draws / 2) / n;
+  const clamp = (v) => Math.min(1 - 0.5 / n, Math.max(0.5 / n, v));
+  const toElo = (s) => -400 * Math.log10(1 / clamp(s) - 1);
+  const se = Math.sqrt(Math.max(score * (1 - score), 0.25 / n) / n);
+  return {
+    n, score, se, saturated: score >= 1 || score <= 0,
+    elo: toElo(score), eloLo: toElo(score - 1.96 * se), eloHi: toElo(score + 1.96 * se),
+  };
+}
+
+function ladder(results) {
+  return results.map((r) => ({ ...r, ...eloFrom(r.wins, r.draws, r.losses) }));
 }
 
 const table = (head, rows, cells) =>
   ['| ' + head.join(' | ') + ' |', '|' + head.map(() => '---').join('|') + '|',
     ...rows.map((r) => '| ' + cells(r).join(' | ') + ' |')].join('\n');
 
+// Worker mode: one pairing, straight to a JSON file, nothing else measured.
+if (args.get('pairing')) {
+  const [strong, weak] = args.get('pairing').split(':');
+  const out = playPairing(strong, weak, GAMES, Number(args.get('seed-offset') || 0));
+  const target = args.get('json');
+  mkdirSync(new URL('.', new URL('../' + target, import.meta.url)), { recursive: true });
+  writeFileSync(new URL('../' + target, import.meta.url), JSON.stringify(out));
+  process.stderr.write('\n' + JSON.stringify(out) + '\n');
+  process.exit(0);
+}
+
+function collect() {
+  const dir = args.get('merge');
+  if (!dir) return PAIRINGS.map(([strong, weak]) => playPairing(strong, weak, GAMES, 0));
+  const base = new URL('../' + dir + '/', import.meta.url);
+  const parts = readdirSync(base).filter((f) => f.endsWith('.json'))
+    .map((f) => JSON.parse(readFileSync(new URL(f, base), 'utf8')));
+  return PAIRINGS.map(([strong, weak]) => parts
+    .filter((p) => p.strong === strong && p.weak === weak)
+    .reduce((acc, p) => ({
+      strong, weak, games: acc.games + p.games, wins: acc.wins + p.wins,
+      draws: acc.draws + p.draws, losses: acc.losses + p.losses,
+    }), { strong, weak, games: 0, wins: 0, draws: 0, losses: 0 }));
+}
+
 const speedRows = speed();
 const blockRows = await blocking();
-const ladderRows = ladder();
+const ladderRows = ladder(collect());
 process.stderr.write('\n');
 
 const report = `# measurements.md -- CHESS/64
@@ -177,16 +223,45 @@ ${table(['level', 'iterations', 'median ms', 'p90 ms', 'max ms'], blockRows,
 
 ## Is the difficulty ladder ordered?
 
-${GAMES} games per pairing, ${PLY_CAP}-ply cap, openings paired so each is played
-once with each colour assignment, unfinished games adjudicated at +/-${ADJUDICATE_CP} cp.
-Score is from the stronger setting's point of view.
+${ladderRows[0].n} games per pairing, ${PLY_CAP}-ply cap, openings paired so each
+is played once with each colour assignment, unfinished games adjudicated at
++/-${ADJUDICATE_CP} cp. Both sides search at multiPv 1, the configuration the page
+plays at. Score is from the stronger setting's point of view.
 
-${table(['stronger', 'weaker', 'games', 'W', 'D', 'L', 'score', 'SE'], ladderRows,
-  (r) => [r.strong, r.weak, r.games, r.wins, r.draws, r.losses, r.score.toFixed(3), '+/-' + r.se.toFixed(3)])}
+${table(['stronger', 'weaker', 'games', 'W', 'D', 'L', 'score', 'Elo diff (95% CI)'], ladderRows,
+  (r) => [r.strong, r.weak, r.n, r.wins, r.draws, r.losses, r.score.toFixed(3),
+    (r.saturated ? '>= +' + Math.round(r.eloLo) : '+' + Math.round(r.elo) +
+      ' (' + Math.round(r.eloLo) + ' to ' + Math.round(r.eloHi) + ')')])}
 
-At this sample size the standard error is about ${(ladderRows[0].se * 100).toFixed(0)} points,
-so only a large gap means anything. Treat a score under about 0.65 as "not shown
-to be different" rather than as evidence the levels are equal.
+## What the Elo numbers are, and are not
+
+They are **differences between two settings of this engine**, computed from the
+game scores above with the standard logistic conversion. Stacked from the
+weakest level, and remembering that each step carries its own interval:
+
+${(() => {
+  let running = 0;
+  const rows = [{ level: 'casual', rel: '0 (anchor)' }];
+  for (const r of ladderRows) {
+    running += r.elo;
+    rows.push({ level: r.strong, rel: '+' + Math.round(running) + (r.saturated ? ' or more' : '') });
+  }
+  return table(['level', 'Elo relative to Casual'], rows, (r) => [r.level, r.rel]);
+})()}
+
+Nothing here has played an opponent whose rating is known, so **there is no
+absolute rating and none is implied**. A number comparable to a human rating
+needs games against a rated opponent; that is what \`scripts/lichess_bot.mjs\` is
+for, and until it has been run and its result recorded below, read this table as
+"Focused gives Club about this many points of handicap" and not as "this bot is
+rated N". (The site's \`connect-src 'none'\` constrains the shipped page, not a
+benchmark harness that never ships.)
+
+Two further caveats worth keeping in view: the levels play each other, and an
+engine's score against a near-copy of itself with a different budget is a poor
+predictor of its score against a differently-built opponent; and a clean sweep
+has no finite Elo, so it is shown as a lower bound at the resolution the sample
+size supports.
 `;
 
 writeFileSync(new URL('../' + OUT, import.meta.url), report);
