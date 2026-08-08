@@ -16,7 +16,7 @@
 // command-line argument: arguments show up in process listings. It needs the
 // bot:play scope and must never be committed.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import {
   START_FEN, fromFen, generateMoves, makeMove, toFen,
 } from '../web/lib/rules.js';
@@ -54,6 +54,9 @@ let finished = 0;
 let pending = 0;          // challenges sent but not yet a game or a refusal
 const active = new Set();
 const blocked = new Set();   // opponents at their daily bot-vs-bot cap
+let cooldownUntil = 0;       // set when Lichess answers 429
+let strikes = 0;             // consecutive 429s, for exponential backoff
+let poolCache = { at: 0, bots: [] };
 const CONCURRENCY = Number(args.get('concurrency') || 1);
 
 // The search is synchronous: it blocks this process for the whole budget. Two
@@ -67,6 +70,19 @@ async function api(path, options = {}) {
     ...options,
     headers: { ...auth, ...(options.headers || {}) },
   });
+  if (response.status === 429) {
+    // Lichess is asking us to slow down. A FLAT one-minute cooldown was not
+    // enough: retrying at the same rate afterwards just earned another 429, and
+    // 44 of them in a row got the account throttled on reads as well. Each
+    // consecutive 429 now doubles the wait, up to a quarter of an hour, and only
+    // a success clears the streak.
+    strikes++;
+    const wait = Math.min(60000 * 2 ** (strikes - 1), 900000);
+    cooldownUntil = Date.now() + wait;
+    throw new Error('429 on ' + path + '; strike ' + strikes + ', backing off ' +
+      Math.round(wait / 1000) + 's');
+  }
+  strikes = 0;
   if (!response.ok) {
     // The parentheses matter: without them the concatenation binds first and
     // every failure reports the bare word "POST" with no status and no body.
@@ -201,6 +217,44 @@ async function main() {
   if (args.get('auto')) runMatchmaker();
 
   console.log('listening for games (stops after ' + MAX_GAMES + ')');
+  // A long-lived HTTP stream will be dropped sooner or later -- ECONNRESET on
+  // the event stream killed a run outright once, hours into it. Reconnect
+  // instead of dying; games already in flight keep their own streams.
+  while (finished < MAX_GAMES) {
+    try {
+      await listen();
+    } catch (error) {
+      console.error('event stream dropped (' + error.message + '), reconnecting in 5s');
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+  }
+  console.log('played ' + finished + ' games, stopping');
+  await recordRating();
+}
+
+// docs/measurements.md is generated wholesale by bench.mjs, so an absolute
+// rating typed into it by hand would be erased by the next benchmark run. The
+// result is written here as data instead, and bench.mjs renders it.
+async function recordRating() {
+  try {
+    const user = await (await fetch(API + '/api/user/' + account.id)).json();
+    const blitz = user.perfs.blitz;
+    const record = {
+      site: 'lichess.org', username: user.username, pool: 'blitz 3+2 vs BOT accounts',
+      level: LEVEL, budgetMs: (LEVELS[LEVEL] || LEVELS.focused).budgetMs,
+      rating: blitz.rating, rd: blitz.rd, games: blitz.games,
+      provisional: Boolean(blitz.prov),
+      wins: user.count.win, losses: user.count.loss, draws: user.count.draw,
+    };
+    writeFileSync(new URL('../docs/lichess_rating.json', import.meta.url),
+      JSON.stringify(record, null, 2) + '\n');
+    console.log('wrote docs/lichess_rating.json: ' + JSON.stringify(record));
+  } catch (error) {
+    console.error('could not record the rating: ' + error.message);
+  }
+}
+
+async function listen() {
   for await (const event of ndjson('/api/stream/event')) {
     if (event.type === 'challenge' && event.challenge.challenger.id !== account.id) {
       const reason = await acceptable(event.challenge);
@@ -220,10 +274,7 @@ async function main() {
       pending = Math.max(0, pending - 1);
       console.log('opponent declined ' + event.challenge.id);
     }
-    if (finished >= MAX_GAMES && active.size === 0) {
-      console.log('played ' + finished + ' games, stopping');
-      break;
-    }
+    if (finished >= MAX_GAMES && active.size === 0) return;
   }
 }
 
@@ -264,11 +315,18 @@ async function challenge(opponent) {
   }
 }
 
+// Our own rating is read at most once a minute and remembered; polling it on
+// every cycle was one more request for a number that only changes when a game
+// ends. Every finished game refreshes it.
+let ratingCache = { at: 0, value: 1500 };
 async function ourRating() {
+  if (Date.now() - ratingCache.at < 60000) return ratingCache.value;
   try {
     const user = await (await fetch(API + '/api/user/' + account.id)).json();
-    return user.perfs && user.perfs.blitz ? user.perfs.blitz.rating : 1500;
-  } catch { return 1500; }
+    const value = user.perfs && user.perfs.blitz ? user.perfs.blitz.rating : ratingCache.value;
+    ratingCache = { at: Date.now(), value };
+  } catch { ratingCache.at = Date.now(); }
+  return ratingCache.value;
 }
 
 // Opponents with a settled rating make better yardsticks than opponents whose
@@ -281,8 +339,14 @@ async function ourRating() {
 // 3000 forever. Beating a 987 when you are rated 3000 moves the number by +0.
 async function pickOpponents() {
   const band = args.get('band') || 'auto';
-  const text = await (await fetch(API + '/api/bot/online?nb=100')).text();
-  let bots = text.split('\n').filter(Boolean).map((line) => JSON.parse(line))
+  // The online list barely changes minute to minute, and re-fetching it on every
+  // matchmaker cycle was a needless request every 18 seconds on top of the
+  // challenges. Cache it.
+  if (Date.now() - poolCache.at > 600000) {
+    const text = await (await fetch(API + '/api/bot/online?nb=100')).text();
+    poolCache = { at: Date.now(), bots: text.split('\n').filter(Boolean).map((l) => JSON.parse(l)) };
+  }
+  let bots = poolCache.bots
     .map((bot) => ({ id: bot.id, rating: bot.perfs && bot.perfs.blitz ? bot.perfs.blitz.rating : 0,
       games: bot.perfs && bot.perfs.blitz ? bot.perfs.blitz.games : 0 }))
     .filter((bot) => bot.rating > 0 && bot.games >= 300 && bot.id !== account.id
@@ -300,7 +364,7 @@ async function pickOpponents() {
 async function runMatchmaker() {
   const tried = new Map();
   while (finished < MAX_GAMES) {
-    if (busy() || finished + active.size + pending >= MAX_GAMES) {
+    if (busy() || finished + active.size + pending >= MAX_GAMES || Date.now() < cooldownUntil) {
       await new Promise((r) => setTimeout(r, 5000));
       continue;
     }
@@ -314,7 +378,11 @@ async function runMatchmaker() {
     tried.set(target.id, (tried.get(target.id) || 0) + 1);
     console.log('matchmaker: ' + target.id + ' (blitz ' + target.rating + ', ' + target.games + ' games)');
     await challenge(target.id);
-    await new Promise((r) => setTimeout(r, 20000));
+    // Most challenges are refused -- measured 19 declines and 20 daily-cap
+    // skips per 6 games actually played -- so the pause between attempts is the
+    // dominant cost of the whole run, not the chess. Long enough to stay a
+    // polite client, short enough to find the bots that will play.
+    await new Promise((r) => setTimeout(r, Number(args.get('challenge-gap') || 7000)));
   }
 }
 

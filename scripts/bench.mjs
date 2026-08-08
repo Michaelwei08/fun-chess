@@ -157,6 +157,38 @@ function ladder(results) {
   return results.map((r) => ({ ...r, ...eloFrom(r.wins, r.draws, r.losses) }));
 }
 
+// Written by scripts/lichess_bot.mjs. Absent until that run has happened, and
+// the report says so rather than leaving a hole where a number should be.
+function absoluteSection() {
+  let r;
+  try {
+    r = JSON.parse(readFileSync(new URL('../docs/lichess_rating.json', import.meta.url), 'utf8'));
+  } catch {
+    return `No absolute rating has been measured yet. The ladder above is
+relative. Run \`node scripts/lichess_bot.mjs --play --auto\` to anchor it.`;
+  }
+  const flag = r.provisional
+    ? `**still provisional** (Lichess clears that flag below RD 110), so treat it as
+"somewhere around ${r.rating}", not as a settled rating`
+    : 'no longer provisional';
+  return `Measured by playing rated games on ${r.site} as \`${r.username}\`, a declared
+BOT account, at the **${r.level}** level (${r.budgetMs} ms per move -- the setting a
+visitor to the page actually plays against).
+
+| pool | rating | RD | games | record |
+|---|---|---|---|---|
+| ${r.pool} | **${r.rating}** | ${r.rd} | ${r.games} | ${r.wins}W ${r.losses}L ${r.draws}D |
+
+The rating is ${flag}. Roughly, 95% of the estimate's mass lies within
++/-${Math.round(r.rd * 1.96)} points of it.
+
+Three things this number is not. It is not a **human** rating: the opponents were
+other bots, an engine-heavy pool. It is not a **chess.com** rating; the same
+strength reads a few hundred points lower there, so it cannot be compared with
+the labels on their bots. And it rates **one level** -- the other three would
+each need their own account, since one account carries one rating.`;
+}
+
 const table = (head, rows, cells) =>
   ['| ' + head.join(' | ') + ' |', '|' + head.map(() => '---').join('|') + '|',
     ...rows.map((r) => '| ' + cells(r).join(' | ') + ' |')].join('\n');
@@ -262,6 +294,10 @@ engine's score against a near-copy of itself with a different budget is a poor
 predictor of its score against a differently-built opponent; and a clean sweep
 has no finite Elo, so it is shown as a lower bound at the resolution the sample
 size supports.
+
+## Absolute rating
+
+${absoluteSection()}
 `;
 
 writeFileSync(new URL('../' + OUT, import.meta.url), report);
