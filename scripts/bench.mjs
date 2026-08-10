@@ -245,6 +245,11 @@ early when it can predict that, but the depth-to-depth cost ratio is not stable
 enough to predict every time; what does not finish is discarded, except for the
 root moves that completed, which are adopted if they are no worse.
 
+Expect this table to move between runs, including the depth column. The budget is
+wall-clock, so a busier or slower machine buys fewer nodes and can finish one
+depth less: the same tactical position has measured both 760 and 649 knodes/s on
+this hardware. Compare rows within one run, not across runs.
+
 ## Main-thread blocking between yields
 
 The site sends \`worker-src 'none'\`, so the search runs on the main thread and

@@ -56,6 +56,7 @@ const active = new Set();
 const blocked = new Set();   // opponents at their daily bot-vs-bot cap
 let cooldownUntil = 0;       // set when Lichess answers 429
 let strikes = 0;             // consecutive 429s, for exponential backoff
+let streamFailures = 0;      // consecutive event-stream drops
 let poolCache = { at: 0, bots: [] };
 const CONCURRENCY = Number(args.get('concurrency') || 1);
 
@@ -224,8 +225,14 @@ async function main() {
     try {
       await listen();
     } catch (error) {
-      console.error('event stream dropped (' + error.message + '), reconnecting in 5s');
-      await new Promise((r) => setTimeout(r, 5000));
+      // Back off on reconnect too. A fixed 5 s retry against a server that is
+      // returning error pages is just a slower version of the hammering that
+      // got this account throttled in the first place.
+      streamFailures++;
+      const wait = Math.min(5000 * 2 ** (streamFailures - 1), 300000);
+      console.error('event stream dropped (' + error.message.slice(0, 80) +
+        '), reconnecting in ' + Math.round(wait / 1000) + 's');
+      await new Promise((r) => setTimeout(r, wait));
     }
   }
   console.log('played ' + finished + ' games, stopping');
@@ -256,6 +263,7 @@ async function recordRating() {
 
 async function listen() {
   for await (const event of ndjson('/api/stream/event')) {
+    streamFailures = 0;
     if (event.type === 'challenge' && event.challenge.challenger.id !== account.id) {
       const reason = await acceptable(event.challenge);
       if (reason) {

@@ -27,6 +27,14 @@
   a few hundred games to find out, raise its budget, or say plainly in the UI
   that it is a longer think rather than a stronger one. Do not let the label
   imply a strength that has not been measured.
+- Open questions: 2026-08-08 [TOOL] The Lichess rating stopped 2 RD points short of
+  losing its provisional flag: **2209, RD 112, 75 rated games, 66W 16L 1D**. The
+  estimate is settled -- 2209 to 2220 across the last ~45 games while RD fell 147
+  to 112 -- so what is unfinished is the deviation, not the number. Completing it
+  needs a handful more games on a later day, because the account keeps meeting
+  Lichess's challenge-creation limit and an hour in accept-only mode drew no
+  incoming challenges. Resume with
+  `--play --auto --band auto --challenge-gap 60000`; games already played count.
 - Open questions: 2026-08-07 [ASSUMPTION] Whether Record mode should also accept a
   pasted PGN. Only FEN and one move at a time are supported today.
 
