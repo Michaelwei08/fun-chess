@@ -261,10 +261,10 @@ function* iterate(pos, options) {
     // would have finished, and adoptPartial limits the damage of guessing low.
     if (now() - started + iterationMs * 3 > budgetMs) break;
   }
-  // The time actually spent, including any iteration that was abandoned. The
-  // yielded value carries the clock as of its own completion, which understates
-  // the wall clock the page paid for.
-  if (last) last.timeMs = Math.round(now() - started);
+  // Totals for the whole search, abandoned iteration included. `depth` stays the
+  // last COMPLETED depth, but nodes and time must cover the same interval, or
+  // the pair implies a nodes-per-second the engine never reached.
+  if (last) { last.timeMs = Math.round(now() - started); last.nodes = nodes; last.seldepth = seldepth; }
   if (!last) {  // Not even depth 1 finished: return a legal move, not nothing.
     const m = order[0];
     yield { ...base, best: m, pv: [m], lines: [{ move: m, scoreCp: 0, pv: [m] }], nodes };

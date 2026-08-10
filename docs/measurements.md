@@ -9,22 +9,22 @@ sample size shown.
 
 | position | level | mode | depth | seldepth | nodes | ms | knodes/s |
 |---|---|---|---|---|---|---|---|
-| opening | focused | playing | 7 | 15 | 217,360 | 248 | 876 |
-| opening | focused | analysing | 7 | 14 | 321,753 | 309 | 1041 |
-| opening | deep | playing | 8 | 22 | 763,258 | 766 | 996 |
-| opening | deep | analysing | 7 | 14 | 321,753 | 1201 | 268 |
-| middlegame | focused | playing | 6 | 18 | 390,538 | 459 | 851 |
-| middlegame | focused | analysing | 4 | 21 | 185,087 | 276 | 671 |
-| middlegame | deep | playing | 6 | 18 | 390,538 | 558 | 700 |
-| middlegame | deep | analysing | 5 | 21 | 573,564 | 939 | 611 |
-| tactical | focused | playing | 5 | 19 | 137,573 | 229 | 601 |
-| tactical | focused | analysing | 3 | 23 | 103,666 | 232 | 447 |
-| tactical | deep | playing | 6 | 23 | 550,396 | 985 | 559 |
-| tactical | deep | analysing | 4 | 23 | 235,637 | 1201 | 196 |
-| endgame | focused | playing | 9 | 17 | 277,742 | 317 | 876 |
-| endgame | focused | analysing | 7 | 15 | 363,366 | 444 | 818 |
-| endgame | deep | playing | 10 | 18 | 486,571 | 525 | 927 |
-| endgame | deep | analysing | 7 | 15 | 363,366 | 429 | 847 |
+| opening | focused | playing | 7 | 15 | 217,360 | 403 | 539 |
+| opening | focused | analysing | 7 | 14 | 321,753 | 594 | 542 |
+| opening | deep | playing | 7 | 22 | 709,632 | 1201 | 591 |
+| opening | deep | analysing | 7 | 14 | 321,753 | 518 | 621 |
+| middlegame | focused | playing | 5 | 18 | 132,905 | 521 | 255 |
+| middlegame | focused | analysing | 3 | 21 | 140,288 | 602 | 233 |
+| middlegame | deep | playing | 5 | 18 | 132,905 | 453 | 293 |
+| middlegame | deep | analysing | 4 | 21 | 185,087 | 784 | 236 |
+| tactical | focused | playing | 4 | 19 | 121,856 | 602 | 202 |
+| tactical | focused | analysing | 2 | 23 | 49,186 | 309 | 159 |
+| tactical | deep | playing | 5 | 19 | 137,573 | 670 | 205 |
+| tactical | deep | analysing | 3 | 23 | 103,666 | 620 | 167 |
+| endgame | focused | playing | 7 | 15 | 71,282 | 244 | 292 |
+| endgame | focused | analysing | 6 | 14 | 79,564 | 276 | 288 |
+| endgame | deep | playing | 8 | 15 | 140,967 | 501 | 281 |
+| endgame | deep | analysing | 6 | 15 | 351,232 | 1201 | 292 |
 
 A level whose `ms` reaches its whole budget without gaining depth over the level
 below spent the tail of it on an iteration that could not finish. The search stops
@@ -32,10 +32,13 @@ early when it can predict that, but the depth-to-depth cost ratio is not stable
 enough to predict every time; what does not finish is discarded, except for the
 root moves that completed, which are adopted if they are no worse.
 
-Expect this table to move between runs, including the depth column. The budget is
-wall-clock, so a busier or slower machine buys fewer nodes and can finish one
-depth less: the same tactical position has measured both 760 and 649 knodes/s on
-this hardware. Compare rows within one run, not across runs.
+Each row is the **best of 3** runs, by nodes per second. The budget
+is wall-clock, so losing the CPU to something else does not just slow a
+measurement down, it buys fewer nodes and can cost a whole depth -- one sweep on
+this shared desktop recorded 52 knodes/s on a position that measures over 1000
+when the machine is quiet. Taking the least-contended run is what makes the
+table describe the engine rather than the machine's mood. Even so, compare rows
+within one run rather than across runs.
 
 ## Main-thread blocking between yields
 
@@ -48,10 +51,10 @@ it and why Focused, not Deep, is the default in the level select.
 
 | level | iterations | median ms | p90 ms | max ms |
 |---|---|---|---|---|
-| casual | 7 | 2 | 71 | 71 |
-| club | 17 | 11 | 70 | 71 |
-| focused | 27 | 48 | 196 | 230 |
-| deep | 31 | 54 | 203 | 559 |
+| casual | 7 | 10 | 125 | 125 |
+| club | 17 | 28 | 76 | 163 |
+| focused | 20 | 56 | 176 | 178 |
+| deep | 32 | 71 | 240 | 766 |
 
 ## Is the difficulty ladder ordered?
 
@@ -98,15 +101,15 @@ Measured by playing rated games on lichess.org as `Bot135`, a declared
 BOT account, at the **focused** level (600 ms per move -- the setting a
 visitor to the page actually plays against).
 
-> **This run did not converge.** Stopped 2 points of deviation short of losing the provisional flag, which Lichess clears below RD 110. The estimate itself is settled: it sat between 2209 and 2220 across the last ~45 games while RD fell from 147 to 112, so the remaining uncertainty is in the deviation, not in the number. The run ended because the account kept hitting Lichess's challenge-creation limit -- 38 games cost about 167 challenge attempts, of which 92 were declined and 37 went to bots already at their 100-game daily cap -- and an hour in accept-only mode drew no incoming challenges. Finishing needs a handful more games on another day, not a different method.
+> **Recorded with a wider deviation than a settled rating.** Accepted as the project's absolute figure. The estimate is settled: it sat between 2209 and 2220 across the last ~45 games while RD fell from 147 to 112. Lichess still flags it provisional because that flag clears below RD 110 and this stopped at 112, so the deviation is wider than a fully settled rating would carry -- the number is recorded with its RD rather than presented as exact. Getting the flag cleared would need a handful more games; the run ended against Lichess's challenge-creation limit and further games were not worth the API pressure.
 
 
 | pool | rating | RD | games | record |
 |---|---|---|---|---|
 | blitz 3+2 vs BOT accounts | **2209** | 112 | 75 | 66W 16L 1D |
 
-The rating is **still provisional** (Lichess clears that flag below RD 110), so treat it as
-"somewhere around 2209", not as a settled rating. Roughly, 95% of the estimate's mass lies within
+The rating is carried by Lichess as **provisional**, a flag it clears below RD 110, so read
+this as "about 2209" rather than as an exact figure. Roughly, 95% of the estimate's mass lies within
 +/-220 points of it.
 
 Three things this number is not. It is not a **human** rating: the opponents were

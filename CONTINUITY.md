@@ -27,14 +27,10 @@
   a few hundred games to find out, raise its budget, or say plainly in the UI
   that it is a longer think rather than a stronger one. Do not let the label
   imply a strength that has not been measured.
-- Open questions: 2026-08-08 [TOOL] The Lichess rating stopped 2 RD points short of
-  losing its provisional flag: **2209, RD 112, 75 rated games, 66W 16L 1D**. The
-  estimate is settled -- 2209 to 2220 across the last ~45 games while RD fell 147
-  to 112 -- so what is unfinished is the deviation, not the number. Completing it
-  needs a handful more games on a later day, because the account keeps meeting
-  Lichess's challenge-creation limit and an hour in accept-only mode drew no
-  incoming challenges. Resume with
-  `--play --auto --band auto --challenge-gap 60000`; games already played count.
+- Open questions: 2026-08-08 [USER] CLOSED. The absolute figure is recorded as
+  **2209 on Lichess blitz, RD 112, 75 rated games, 66W 16L 1D** (see D026). The
+  only thing left undone is the provisional flag, which needs RD under 110; the
+  estimate itself stopped moving long before the run ended.
 - Open questions: 2026-08-07 [ASSUMPTION] Whether Record mode should also accept a
   pasted PGN. Only FEN and one move at a time are supported today.
 
@@ -195,6 +191,18 @@
   time. Incoming challenges are declined while busy, sent challenges are counted
   as pending against the same limit, and a pending challenge nobody answers
   expires after 45 s so it cannot wedge the matchmaker.
+- D026 ACTIVE 2026-08-08 [USER]: The project's absolute strength figure is
+  **Lichess blitz 2209, RD 112, over 75 rated games (66W 16L 1D)**, measured on
+  the `Bot135` BOT account playing the shipped Focused level (600 ms per move) at
+  3+2. Recorded in `docs/lichess_rating.json`; `bench.mjs` renders it so the
+  number cannot be separated from its RD, its game count, or its scope. The
+  measurement is closed at the owner's decision rather than run to a cleared
+  provisional flag: the estimate had been stable between 2209 and 2220 for ~45
+  games while RD fell 147 to 112, and the remaining two points of deviation were
+  not worth further pressure on an API that had already blocked the account once.
+  The figure is quoted as "about 2209", never as an exact rating, and never
+  without the three scope limits: not a human rating, not comparable to
+  chess.com's scale, and true of one level only.
 - D016 ACTIVE 2026-08-07 [USER]: `scripts/sync_site.py` is dry-run by default,
   refuses to run if any of its HTML substitutions does not match exactly once,
   never runs git, and prints the `_headers` / `sitemap.xml` / fun-card changes for

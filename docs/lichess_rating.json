@@ -12,6 +12,7 @@
   "losses": 16,
   "draws": 1,
   "measuredOn": "2026-08-08",
-  "note": "Stopped 2 points of deviation short of losing the provisional flag, which Lichess clears below RD 110. The estimate itself is settled: it sat between 2209 and 2220 across the last ~45 games while RD fell from 147 to 112, so the remaining uncertainty is in the deviation, not in the number. The run ended because the account kept hitting Lichess's challenge-creation limit -- 38 games cost about 167 challenge attempts, of which 92 were declined and 37 went to bots already at their 100-game daily cap -- and an hour in accept-only mode drew no incoming challenges. Finishing needs a handful more games on another day, not a different method.",
+  "closed": true,
+  "note": "Accepted as the project's absolute figure. The estimate is settled: it sat between 2209 and 2220 across the last ~45 games while RD fell from 147 to 112. Lichess still flags it provisional because that flag clears below RD 110 and this stopped at 112, so the deviation is wider than a fully settled rating would carry -- the number is recorded with its RD rather than presented as exact. Getting the flag cleared would need a handful more games; the run ended against Lichess's challenge-creation limit and further games were not worth the API pressure.",
   "converged": false
 }

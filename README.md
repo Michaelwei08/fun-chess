@@ -80,11 +80,20 @@ The levels are **budgets, not ratings**. Casual, Club, Focused and Deep set a
 thinking time and how much noise the engine tolerates in its own choice; the
 search stays honest at every level.
 
-`docs/measurements.md` does carry Elo, and it is worth being precise about what
-kind: it is the **difference between two settings of this engine**, converted
-from the game scores of levels playing each other, with a confidence interval on
-every step. It is not a rating. Nothing here has faced an opponent whose rating
-is known, so there is no number comparable to a human's, and the UI shows none.
+`docs/measurements.md` carries two kinds of number, and the difference matters.
+
+The **relative** Elo is the difference between two settings of this engine,
+converted from the game scores of levels playing each other, with a confidence
+interval on every step. Club is about +394 over Casual, Focused +255 over Club,
+Deep +89 over Focused -- and that last interval still crosses zero.
+
+The **absolute** figure is about **2209 on Lichess blitz** (RD 112, 75 rated
+games, 66W 16L 1D), measured by the Focused level playing rated games as a
+declared BOT account. Three limits travel with it: the opponents were other
+bots, not humans; Lichess's scale is not chess.com's, where the same strength
+reads a few hundred points lower; and it describes one level, because one
+account carries one rating. Lichess still marks it provisional, so it is "about
+2209", not 2209. The UI shows no rating at all.
 
 The opponent and the analysis panel search differently, and the reason is
 measured: scoring three root moves with a full window each, so the candidate
