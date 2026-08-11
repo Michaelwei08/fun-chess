@@ -10,7 +10,6 @@
 [hidden] {
   display: none;
 }
-
 .chess-main {
   padding-top: 94px;
 }
@@ -18,21 +17,21 @@
 /* ---------------------------------------------------------------- hero */
 
 .game-hero {
-  width: min(1152px, 100%);
+  width: min(1152px, calc(100% - 48px));
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.7fr);
   gap: clamp(30px, 7vw, 96px);
   align-items: end;
   margin: 0 auto;
-  padding: clamp(56px, 8vw, 96px) 24px 48px;
+  padding: clamp(72px, 10vw, 118px) 0 clamp(54px, 8vw, 88px);
   border-bottom: 1px solid var(--line);
 }
 
 .game-hero h1 {
   max-width: 760px;
   margin-top: 14px;
-  font-size: clamp(2.9rem, 6.2vw, 5.4rem);
-  line-height: 0.92;
+  font-size: clamp(3.4rem, 7.5vw, 6rem);
+  line-height: 0.95;
 }
 
 .game-hero-copy > p {
@@ -50,6 +49,9 @@
 }
 
 .page-actions a {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
   padding: 11px 16px;
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -58,6 +60,11 @@
   font-weight: 800;
 }
 
+.page-actions a:first-child {
+  color: white;
+  border-color: var(--teal-dark);
+  background: var(--teal-dark);
+}
 /* --------------------------------------------------------------- shell */
 
 .game-shell {
@@ -151,6 +158,7 @@
   color: var(--muted);
   background: transparent;
   cursor: pointer;
+  font-family: inherit;
   font-size: 0.72rem;
   font-weight: 800;
 }
@@ -186,6 +194,7 @@
   border-radius: 999px;
   background: var(--teal-dark);
   cursor: pointer;
+  font-family: inherit;
   font-weight: 800;
 }
 
@@ -204,6 +213,7 @@
   border-radius: 999px;
   background: var(--panel);
   cursor: pointer;
+  font-family: inherit;
   font-size: 0.74rem;
   font-weight: 800;
 }
@@ -219,6 +229,17 @@
 
 .chess-btn-wide {
   grid-column: 1 / -1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-actions a, .game-primary, .chess-btn {
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+}
+
+.page-actions a:hover, .game-primary:hover, .chess-btn:hover:enabled {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(41, 37, 36, 0.1);
 }
 
 /* ---- responsive overrides (media queries last so they win) ---- */
@@ -256,6 +277,8 @@
 }
 
 @media (max-width: 650px) {
+  .game-hero { width: min(100% - 28px, 1152px); }
+
   .game-shell {
     width: min(100% - 24px, 1240px);
     padding: 16px;

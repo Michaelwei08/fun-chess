@@ -27,7 +27,7 @@ PROJECT = Path(__file__).resolve().parents[1]
 WEB = PROJECT / "web"
 SITE = Path("D:/Stanford/research/own/personal_website")
 
-VERSION = "20260807a"
+VERSION = "20260811a"
 STYLESHEETS = ["chess.css", "chess-stage.css", "chess-panel.css", "chess-board.css"]
 
 # (needle, replacement). Each must appear exactly once in web/index.html.

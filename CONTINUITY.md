@@ -5,14 +5,11 @@
   of cpwei.qzz.io: a board that can be operated live, with a bot attached. Two
   interaction modes were requested: play against the engine, and enter the moves
   of a game happening on a physical board while the engine analyses.
-- Now: 2026-08-07 [TOOL] Complete and working end to end. 58 tests pass
-  (`node --test "tests/*.test.mjs"`), including perft to depth 5 on seven
-  positions. Verified in a real browser at 1280x800 and 375x812: play, record,
-  typed SAN entry, FEN load, promotion dialog, undo/redo, flip, draw detection,
-  no console errors, no horizontal overflow.
-- Next: 2026-08-07 [USER] Decide whether to publish. `python scripts/sync_site.py`
-  is dry-run by default; publishing also needs the `_headers`, `sitemap.xml` and
-  /fun card edits the script prints, and a human to commit and deploy.
+- Now: 2026-08-11 [CODE] Chess Lab is published at `/chess`; its hero grid,
+  typography, primary action, control fonts, hover treatment, and analysis-panel
+  surface now match the visual language of cpwei.qzz.io. The engine is unchanged.
+- Next: 2026-08-11 [USER] Commit and push the visual-consistency pass in this
+  source repository and its byte-synced `personal_website` deployment copy.
 - Open questions: 2026-08-07 [TOOL] Deep blocks the main thread for ~770 ms in the
   worst case even after the fix in D017, against the 420 ms the sibling META/81
   page holds itself to. Focused, the default, measures 349 ms. Whether Deep should
@@ -308,4 +305,8 @@
   byte-current. Chess worktree is clean.
 - 2026-08-11 [CODE]: Synced Chess Lab into `personal_website` and committed it there as
   `f793ee4`: `/chess`, 12 byte-identical engine/UI modules, four route stylesheets, Fun Hub
-  `Playable now` card, route CSP, stylesheet cache rules, sitemap, and README. Not pushed.
+  `Playable now` card, route CSP, stylesheet cache rules, sitemap, and README; pushed to main.
+- 2026-08-11 [TOOL]: Visual-consistency pass checked at 1280x720 and 390x812 in the
+  in-app browser. Board move `e2-e4` completed with a bot reply, move count 02, and no
+  console errors. All 58 tests pass across the full run plus the corrected 9/9 page rerun;
+  every source file is back within the 300-line cap.
