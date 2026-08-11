@@ -295,4 +295,3 @@ el('fen-copy').addEventListener('click', copyFen);
 
 state.level = el('level').value || 'focused';
 resetGame(START_FEN);
-

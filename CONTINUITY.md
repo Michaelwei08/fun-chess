@@ -299,4 +299,13 @@
 - 2026-08-07 [TOOL]: In-page check after the change: Play mode reaches depth 6 in
   242 ms where the same position previously took 1001 ms to reach depth 5, and
   the Analyse button still returns three exact candidate lines.
-
+- 2026-08-11 [USER]: Commit the Chess results and inspect the sibling project/site state.
+- 2026-08-11 [CODE]: Committed the UI rating-scope clarification: levels remain
+  budgets rather than ratings and are not translated into human playing strength. The full
+  Lichess BOT-pool result remains in `docs/measurements.md` (about 2209, RD 112, 75 games).
+- 2026-08-11 [TOOL]: Full Chess suite passed 58/58; page suite passed again 9/9 after the
+  wording/EOF cleanup. `scripts/sync_site.py --check` confirms the personal-site copy is
+  byte-current. Chess worktree is clean.
+- 2026-08-11 [CODE]: Synced Chess Lab into `personal_website` and committed it there as
+  `f793ee4`: `/chess`, 12 byte-identical engine/UI modules, four route stylesheets, Fun Hub
+  `Playable now` card, route CSP, stylesheet cache rules, sitemap, and README. Not pushed.
