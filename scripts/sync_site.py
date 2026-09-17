@@ -19,13 +19,18 @@ from __future__ import annotations
 
 import argparse
 import filecmp
+import os
 import shutil
 import sys
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parents[1]
 WEB = PROJECT / "web"
-SITE = Path("D:/Stanford/research/own/personal_website")
+# Resolved relative to this project, with an env override, so the script
+# works for anyone who has the two repos side by side -- and so a local
+# absolute path does not ship in a public repo.
+SITE = Path(os.environ.get("CHESS_SITE_DIR")
+            or PROJECT.parents[1] / "personal_website")
 
 VERSION = "20260811a"
 STYLESHEETS = ["chess.css", "chess-stage.css", "chess-panel.css", "chess-board.css"]

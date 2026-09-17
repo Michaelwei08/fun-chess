@@ -142,7 +142,8 @@ test('the vendored base.css still matches the site copy', () => {
   // Not a hard failure if the site is not checked out next to this project.
   let site;
   try {
-    site = readFileSync('D:/Stanford/research/own/personal_website/base.css', 'utf8');
+    site = readFileSync(
+      new URL('../../../personal_website/base.css', import.meta.url), 'utf8');
   } catch { return; }
   assert.equal(read('web/base.css'), site,
     'web/base.css has drifted from personal_website/base.css; re-copy it rather than editing here');
